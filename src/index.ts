@@ -34,6 +34,13 @@ const isWindows = os.platform() === 'win32';
 const APP_URL = process.env.APP_URL || 'https://app.httptoolkit.tech';
 const hasTrustedOrigin = (url: URL) => url.origin === APP_URL;
 
+let APP_HOST: string
+try {
+    APP_HOST = new URL(APP_URL).host
+} catch (error) {
+    throw new Error(`Environment variable APP_URL is not a valid URL: ${APP_URL}`)
+}
+
 const AUTH_TOKEN = crypto.randomBytes(20).toString('base64url');
 const DESKTOP_VERSION = packageJson.version;
 const BUNDLED_SERVER_VERSION = packageJson.config['httptoolkit-server-version'];
@@ -54,7 +61,7 @@ let windows: Electron.BrowserWindow[] = [];
 
 let server: ChildProcess | null = null;
 
-app.commandLine.appendSwitch('ignore-connections-limit', 'app.httptoolkit.tech');
+app.commandLine.appendSwitch('ignore-connections-limit', APP_HOST);
 app.commandLine.appendSwitch('disable-renderer-backgrounding');
 app.commandLine.appendSwitch('js-flags', '--expose-gc'); // Expose window.gc in the UI
 
@@ -168,7 +175,7 @@ if (!amMainInstance) {
             serverKilled = true;
 
             try {
-                await stopServer(server, AUTH_TOKEN);
+                await stopServer(server, APP_URL, AUTH_TOKEN);
             } catch (error) {
                 console.log('Failed to kill server', error);
                 logError(error);
